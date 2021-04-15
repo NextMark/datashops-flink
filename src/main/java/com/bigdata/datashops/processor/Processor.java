@@ -1,5 +1,6 @@
 package com.bigdata.datashops.processor;
 
+import java.io.File;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -44,7 +45,6 @@ public class Processor {
         String location = Config.getArgsRequiredValue("path");
         String timeField = Config.getArgsRequiredValue("ts");
 
-
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(Integer.parseInt(parallelism));
 
@@ -55,7 +55,7 @@ public class Processor {
         env.getCheckpointConfig().setCheckpointTimeout(checkpointTime * 2 * 60 * 1000);
 
         FsStateBackend fsStateBackend =
-                new FsStateBackend(checkpointPath + "/" +jobName+"/flink_writer_" + topic);
+                new FsStateBackend(checkpointPath + File.pathSeparator + jobName + File.pathSeparator + topic);
         StateBackend rocksDBBackend = new RocksDBStateBackend(fsStateBackend, TernaryBoolean.TRUE);
         env.setStateBackend(rocksDBBackend);
 
@@ -83,8 +83,8 @@ public class Processor {
                                                          ParquetAvroWriters.forReflectRecord(Record.class,
                                                                  CompressionCodecName.SNAPPY)).withBucketAssigner(
                         new CommonEventTimeBucketAssigner<>("dt=%s/hour=%s",
-                                e -> JSONObject.parseObject(e.content).getLong(timeField)))
-                                                 .withOutputFileConfig(config).build();
+                                e -> JSONObject.parseObject(e.content).getLong(timeField))).withOutputFileConfig(config)
+                                                 .build();
         source.addSink(sink);
         env.execute(jobName);
     }
