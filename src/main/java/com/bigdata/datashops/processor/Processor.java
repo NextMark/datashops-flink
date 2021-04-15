@@ -55,7 +55,7 @@ public class Processor {
         env.getCheckpointConfig().setCheckpointTimeout(checkpointTime * 2 * 60 * 1000);
 
         FsStateBackend fsStateBackend =
-                new FsStateBackend(checkpointPath + File.pathSeparator + jobName + File.pathSeparator + topic);
+                new FsStateBackend(checkpointPath + "/" + jobName + "/" + topic);
         StateBackend rocksDBBackend = new RocksDBStateBackend(fsStateBackend, TernaryBoolean.TRUE);
         env.setStateBackend(rocksDBBackend);
 
