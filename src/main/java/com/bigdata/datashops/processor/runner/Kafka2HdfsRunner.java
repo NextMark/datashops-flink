@@ -1,6 +1,5 @@
-package com.bigdata.datashops.processor;
+package com.bigdata.datashops.processor.runner;
 
-import java.io.File;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -28,8 +27,8 @@ import com.bigdata.datashops.processor.assigner.CommonEventTimeBucketAssigner;
 import com.bigdata.datashops.processor.format.ParquetAvroWriters;
 import com.bigdata.datashops.processor.pojo.Record;
 
-public class Processor {
-    private static final Logger LOG = LoggerFactory.getLogger(Processor.class);
+public class Kafka2HdfsRunner {
+    private static final Logger LOG = LoggerFactory.getLogger(Kafka2HdfsRunner.class);
 
     public static void main(String[] args) throws Exception {
         Config.initArgs(args);
