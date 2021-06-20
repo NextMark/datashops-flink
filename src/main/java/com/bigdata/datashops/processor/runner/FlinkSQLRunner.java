@@ -21,8 +21,8 @@ public class FlinkSQLRunner {
 
         String[] sqlArrs = sqls.split(";");
         for (String sql : sqlArrs) {
-            LOG.info("sub sql\n{}", sql);
-            tableEnvironment.executeSql(sql);
+            LOG.info("sub sql:\n{}", sql.trim());
+            tableEnvironment.executeSql(sql.trim());
         }
 
 //        String test1 = "CREATE TABLE datagen (\n" +
