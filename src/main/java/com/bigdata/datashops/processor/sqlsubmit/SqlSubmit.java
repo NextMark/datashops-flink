@@ -2,29 +2,31 @@ package com.bigdata.datashops.processor.sqlsubmit;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.SqlParserException;
 import org.apache.flink.table.api.TableEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.bigdata.datashops.processor.config.Config;
 import com.bigdata.datashops.processor.sqlsubmit.cli.SqlCommandParser;
 
 public class SqlSubmit {
+    private static final Logger LOG = LoggerFactory.getLogger(SqlSubmit.class);
 
     public static void main(String[] args) throws Exception {
         Config.initArgs(args);
         String sql = Config.getArgsRequiredValue("sql");
-
-        SqlSubmit submit = new SqlSubmit(sql);
+        String decodeSQL = new String(Base64.decodeBase64(sql));
+        LOG.info("submit sql\n{}", decodeSQL);
+        SqlSubmit submit = new SqlSubmit(decodeSQL);
         submit.run();
     }
 
     // --------------------------------------------------------------------------------------------
 
-    private String sqlFilePath;
-    private String workSpace;
     private TableEnvironment tEnv;
     private String sql;
 
@@ -35,9 +37,8 @@ public class SqlSubmit {
     private void run() throws Exception {
         EnvironmentSettings settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
         this.tEnv = TableEnvironment.create(settings);
-        List<String> sqls = Arrays.asList(sql.trim().substring(0, sql.length()-1).split(";"));
-        sqls = sqls.stream().map(x -> x + ";").collect(Collectors.toList());
-        List<SqlCommandParser.SqlCommandCall> calls = SqlCommandParser.parse(sqls);
+        List<String> lines = Arrays.asList(sql.split("\n"));
+        List<SqlCommandParser.SqlCommandCall> calls = SqlCommandParser.parse(lines);
         for (SqlCommandParser.SqlCommandCall call : calls) {
             callCommand(call);
         }

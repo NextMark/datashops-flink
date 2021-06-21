@@ -10,17 +10,11 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.bigdata.datashops.processor.runner.FlinkSQLRunner;
 
 /**
  * Simple parser for determining the type of command and its parameters.
  */
 public final class SqlCommandParser {
-	private static Logger LOG = LoggerFactory.getLogger(SqlCommandParser.class);
-
 
 	private SqlCommandParser() {
 		// private
@@ -34,7 +28,6 @@ public final class SqlCommandParser {
 				// skip empty line and comment line
 				continue;
 			}
-			LOG.info("line\n{}", line);
 			stmt.append("\n").append(line);
 			if (line.trim().endsWith(";")) {
 				Optional<SqlCommandCall> optionalCall = parse(stmt.toString());
