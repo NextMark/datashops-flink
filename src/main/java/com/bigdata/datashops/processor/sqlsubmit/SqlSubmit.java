@@ -4,9 +4,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.api.common.time.Time;
+import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend;
+import org.apache.flink.runtime.state.storage.FileSystemCheckpointStorage;
+import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.streaming.api.environment.CheckpointConfig;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.SqlParserException;
-import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +33,7 @@ public class SqlSubmit {
 
     // --------------------------------------------------------------------------------------------
 
-    private TableEnvironment tEnv;
+    private StreamTableEnvironment tEnv;
     private String sql;
 
     private SqlSubmit(String sql) {
@@ -35,8 +41,21 @@ public class SqlSubmit {
     }
 
     private void run() throws Exception {
-        EnvironmentSettings settings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
-        this.tEnv = TableEnvironment.create(settings);
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        env.enableCheckpointing(5 * 60 * 1000, CheckpointingMode.EXACTLY_ONCE);
+        env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
+        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);
+        env.getCheckpointConfig().setCheckpointTimeout(2 * 2 * 60 * 1000);
+        env.setStateBackend(new EmbeddedRocksDBStateBackend());
+        env.getCheckpointConfig().setCheckpointStorage("hdfs:///tmp/ds/checkpoints/");
+        env.getCheckpointConfig().setCheckpointStorage(new FileSystemCheckpointStorage("hdfs:///tmp/ds/checkpoints/"));
+        env.getCheckpointConfig()
+                .enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
+        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(2, Time.minutes(3)));
+
+        this.tEnv = StreamTableEnvironment.create(env);
+
         List<String> lines = Arrays.asList(sql.split("\n"));
         List<SqlCommandParser.SqlCommandCall> calls = SqlCommandParser.parse(lines);
         for (SqlCommandParser.SqlCommandCall call : calls) {

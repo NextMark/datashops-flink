@@ -6,9 +6,11 @@ import java.util.Properties;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend;
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend;
 import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
+import org.apache.flink.runtime.state.storage.FileSystemCheckpointStorage;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
@@ -53,11 +55,10 @@ public class Kafka2HdfsRunner {
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);
         env.getCheckpointConfig().setCheckpointTimeout(checkpointTime * 2 * 60 * 1000);
 
-        FsStateBackend fsStateBackend =
-                new FsStateBackend(checkpointPath + "/" + jobName + "/" + topic);
-        StateBackend rocksDBBackend = new RocksDBStateBackend(fsStateBackend, TernaryBoolean.TRUE);
-        env.setStateBackend(rocksDBBackend);
-
+        env.setStateBackend(new EmbeddedRocksDBStateBackend());
+        env.getCheckpointConfig().setCheckpointStorage("hdfs://"+checkpointPath + "/" + jobName + "/" + topic);
+        env.getCheckpointConfig().setCheckpointStorage(new FileSystemCheckpointStorage("hdfs://"+checkpointPath +
+                                                                                               "/" + jobName + "/" + topic));
         env.getCheckpointConfig()
                 .enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(2, Time.minutes(3)));
